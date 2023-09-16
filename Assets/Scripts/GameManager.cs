@@ -72,7 +72,10 @@ public class GameManager : MonoBehaviour
 
     public void StartGame()
     {
+        activeSequence.Clear();
         positionInSequence = 0;
+
+        inputInSequence = 0;
 
         colorSelect = Random.Range(0, colors.Length);
 
@@ -86,18 +89,39 @@ public class GameManager : MonoBehaviour
 
     public void ColorPressed(int whichButton)
     {
-        if(gameActive)
+        if (gameActive)
         {
-
-            if(colorSelect == whichButton)
+            if (activeSequence[inputInSequence] == whichButton)
             {
                 Debug.Log("O");
+
+                inputInSequence++;
+
+                if (inputInSequence >= activeSequence.Count)
+                {
+                    // 사용자가 올바른 시퀀스를 완료했을 때 새 시퀀스 추가
+                    positionInSequence = 0;
+                    inputInSequence = 0;
+
+                    colorSelect = Random.Range(0, colors.Length);
+
+                    activeSequence.Add(colorSelect);
+
+                    colors[activeSequence[positionInSequence]].color = new Color(colors[activeSequence[positionInSequence]].color.r, colors[activeSequence[positionInSequence]].color.g, colors[activeSequence[positionInSequence]].color.b, 1f);
+
+                    stayLitCounter = stayLit;
+                    shouldBeLit = true;
+
+                    gameActive = false; // 추가: 새 시퀀스를 재생하도록 게임 활성화를 해제
+                }
             }
             else
             {
-
                 Debug.Log("x");
+
+                gameActive = false;
             }
         }
     }
 }
+
