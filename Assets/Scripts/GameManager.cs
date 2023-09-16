@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -27,9 +28,16 @@ public class GameManager : MonoBehaviour
     public AudioSource correct;
     public AudioSource incorrect;
 
+    public TMP_Text scoreText;
+
     private void Start()
     {
-        
+        if (!PlayerPrefs.HasKey("HighScore"))
+        {
+            PlayerPrefs.SetInt("HighScore", 0);
+        }
+
+        scoreText.text = "Score: 0 / High Score: " + PlayerPrefs.GetInt("HighScore");
     }
 
     private void Update()
@@ -92,6 +100,9 @@ public class GameManager : MonoBehaviour
 
         stayLitCounter = stayLit;
         shouldBeLit = true;
+
+        scoreText.text = "Score: 0 / High Score: " + PlayerPrefs.GetInt("HighScore");
+
     }
 
     public void ColorPressed(int whichButton)
@@ -124,6 +135,12 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
 
+        if(activeSequence.Count > PlayerPrefs.GetInt("HighScore"))
+        {
+            PlayerPrefs.SetInt("HighScore", activeSequence.Count);
+        }
+        scoreText.text = "Score: " + activeSequence.Count + " / High Score: " + PlayerPrefs.GetInt("HighScore");
+
         positionInSequence = 0;
         inputInSequence = 0;
 
@@ -141,6 +158,7 @@ public class GameManager : MonoBehaviour
 
         //Debug.Log("GOOD!");
         //correct.Play();
+
     }
 }
 
