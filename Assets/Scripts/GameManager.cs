@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public SpriteRenderer[] colors;
+    public SpriteRenderer[] btnColors;
+    public AudioSource[] btnSounds;
 
     private int colorSelect;
 
@@ -23,6 +24,9 @@ public class GameManager : MonoBehaviour
     private bool gameActive;
     private int inputInSequence;
 
+    public AudioSource correct;
+    public AudioSource incorrect;
+
     private void Start()
     {
         
@@ -36,7 +40,8 @@ public class GameManager : MonoBehaviour
 
             if(stayLitCounter < 0 )
             {
-                colors[activeSequence[positionInSequence]].color = new Color(colors[activeSequence[positionInSequence]].color.r, colors[activeSequence[positionInSequence]].color.g, colors[activeSequence[positionInSequence]].color.b, 0.5f);
+                btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 0.5f);
+                btnSounds[activeSequence[positionInSequence]].Stop();
                 shouldBeLit = false;
 
                 shouldBeDark = true;
@@ -60,7 +65,8 @@ public class GameManager : MonoBehaviour
                 if(waitBetweenCounter < 0)
                 {
 
-                    colors[activeSequence[positionInSequence]].color = new Color(colors[activeSequence[positionInSequence]].color.r, colors[activeSequence[positionInSequence]].color.g, colors[activeSequence[positionInSequence]].color.b, 1f);
+                    btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
+                    btnSounds[activeSequence[positionInSequence]].Play();
 
                     stayLitCounter = stayLit;
                     shouldBeLit = true;
@@ -77,11 +83,12 @@ public class GameManager : MonoBehaviour
 
         inputInSequence = 0;
 
-        colorSelect = Random.Range(0, colors.Length);
+        colorSelect = Random.Range(0, btnColors.Length);
 
         activeSequence.Add(colorSelect);
 
-        colors[activeSequence[positionInSequence]].color = new Color(colors[activeSequence[positionInSequence]].color.r, colors[activeSequence[positionInSequence]].color.g, colors[activeSequence[positionInSequence]].color.b, 1f);
+        btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
+        btnSounds[activeSequence[positionInSequence]].Play();
 
         stayLitCounter = stayLit;
         shouldBeLit = true;
@@ -91,37 +98,49 @@ public class GameManager : MonoBehaviour
     {
         if (gameActive)
         {
+
             if (activeSequence[inputInSequence] == whichButton)
             {
-                Debug.Log("O");
 
                 inputInSequence++;
 
                 if (inputInSequence >= activeSequence.Count)
                 {
-                    // 사용자가 올바른 시퀀스를 완료했을 때 새 시퀀스 추가
-                    positionInSequence = 0;
-                    inputInSequence = 0;
-
-                    colorSelect = Random.Range(0, colors.Length);
-
-                    activeSequence.Add(colorSelect);
-
-                    colors[activeSequence[positionInSequence]].color = new Color(colors[activeSequence[positionInSequence]].color.r, colors[activeSequence[positionInSequence]].color.g, colors[activeSequence[positionInSequence]].color.b, 1f);
-
-                    stayLitCounter = stayLit;
-                    shouldBeLit = true;
-
-                    gameActive = false; // 추가: 새 시퀀스를 재생하도록 게임 활성화를 해제
+                    StartCoroutine(WaitBetweenSequences());
                 }
+
             }
             else
             {
-                Debug.Log("x");
+                //Debug.Log("WRONG!");
+                incorrect.Play();
 
                 gameActive = false;
             }
         }
+    }
+
+    IEnumerator WaitBetweenSequences()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        positionInSequence = 0;
+        inputInSequence = 0;
+
+        colorSelect = Random.Range(0, btnColors.Length);
+
+        activeSequence.Add(colorSelect);
+
+        btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
+        btnSounds[activeSequence[positionInSequence]].Play();
+
+        stayLitCounter = stayLit;
+        shouldBeLit = true;
+
+        gameActive = false;
+
+        //Debug.Log("GOOD!");
+        //correct.Play();
     }
 }
 
