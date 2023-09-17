@@ -1,164 +1,162 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public SpriteRenderer[] btnColors;
-    public AudioSource[] btnSounds;
+    private List<int> playerTaskList = new List<int>();
+    private List<int> playerSequenceList = new List<int>();
 
-    private int colorSelect;
+    public List<AudioClip> buttonSoundsList = new List<AudioClip>();
 
-    public float stayLit;
-    private float stayLitCounter;
+    public Sprite normalSprite;
+    public Sprite highlightSprite;
+    public List<Button> clickableButtons;
 
-    public float waitBetweenLights;
-    private float waitBetweenCounter;
+    public AudioClip loseSound;
+    public AudioSource audioSource;
+    public CanvasGroup buttons;
+    public GameObject startButton;
 
-    private bool shouldBeLit;
-    private bool shouldBeDark;
+    public TextMeshProUGUI scoreText;
+    public TextMeshProUGUI highScoreText;
 
-    public List<int> activeSequence;
-    private int positionInSequence;
+    private float highlightDuration = 0.1f;
+    private int score = 0;
+    private int highScore = 0;
 
-    private bool gameActive;
-    private int inputInSequence;
+    private KeyCode upKey = KeyCode.UpArrow;
+    private KeyCode leftKey = KeyCode.LeftArrow;
+    private KeyCode downKey = KeyCode.DownArrow;
+    private KeyCode rightKey = KeyCode.RightArrow;
 
-    public AudioSource correct;
-    public AudioSource incorrect;
-
-    public TMP_Text scoreText;
-
-    private void Start()
+    private void Awake()
     {
-        if (!PlayerPrefs.HasKey("HighScore"))
-        {
-            PlayerPrefs.SetInt("HighScore", 0);
-        }
+        ResetButtonImages();
 
-        scoreText.text = "Score: 0 / High Score: " + PlayerPrefs.GetInt("HighScore");
+        LoadHighScore();
+
+        UpdateScoreText();
+        UpdateHighScoreText();
     }
 
     private void Update()
     {
-        if(shouldBeLit)
+        DetectKeyInput();
+    }
+
+    private void DetectKeyInput()
+    {
+        if (Input.GetKeyDown(upKey)) AddToPlayerSequenceList(0);
+        else if (Input.GetKeyDown(leftKey)) AddToPlayerSequenceList(1);
+        else if (Input.GetKeyDown(downKey)) AddToPlayerSequenceList(2);
+        else if (Input.GetKeyDown(rightKey)) AddToPlayerSequenceList(3);
+    }
+
+    private void AddToPlayerSequenceList(int buttonID)
+    {
+        playerSequenceList.Add(buttonID);
+        StartCoroutine(HighlightButton(buttonID));
+
+        int minLength = Mathf.Min(playerTaskList.Count, playerSequenceList.Count);
+        for (int i = 0; i < minLength; i++)
         {
-            stayLitCounter -= Time.deltaTime;
-
-            if(stayLitCounter < 0 )
+            if (playerTaskList[i] != playerSequenceList[i])
             {
-                btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 0.5f);
-                btnSounds[activeSequence[positionInSequence]].Stop();
-                shouldBeLit = false;
-
-                shouldBeDark = true;
-                waitBetweenCounter = waitBetweenLights;
-
-                positionInSequence++;
+                StartCoroutine(PlayerLost());
+                return;
             }
         }
 
-        if( shouldBeDark )
+        if (playerSequenceList.Count == playerTaskList.Count)
         {
-            waitBetweenCounter -= Time.deltaTime;
-
-            if(positionInSequence >= activeSequence.Count)
-            {
-                shouldBeDark = false;
-                gameActive = true;
-            }
-            else
-            {
-                if(waitBetweenCounter < 0)
-                {
-
-                    btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
-                    btnSounds[activeSequence[positionInSequence]].Play();
-
-                    stayLitCounter = stayLit;
-                    shouldBeLit = true;
-                    shouldBeDark = false;
-                }
-            }
+            ScoreRound();
+            StartCoroutine(StartNextRound());
         }
+    }
+
+    private void ScoreRound()
+    {
+        score++;
+        UpdateScoreText();
+
+        if (score > highScore)
+        {
+            highScore = score;
+            SaveHighScore();
+        }
+
+        UpdateHighScoreText();
+    }
+
+    private void UpdateScoreText()
+    {
+        scoreText.text = "Score: " + score;
+    }
+
+    private void UpdateHighScoreText()
+    {
+        highScoreText.text = "High Score: " + highScore;
+    }
+
+    private IEnumerator HighlightButton(int buttonID)
+    {
+        clickableButtons[buttonID].image.sprite = highlightSprite;
+        audioSource.PlayOneShot(buttonSoundsList[buttonID]);
+        yield return new WaitForSeconds(highlightDuration);
+        clickableButtons[buttonID].image.sprite = normalSprite;
+        yield return new WaitForSeconds(0.1f);
+    }
+
+    private IEnumerator PlayerLost()
+    {
+        audioSource.PlayOneShot(loseSound);
+        playerSequenceList.Clear();
+        playerTaskList.Clear();
+        yield return new WaitForSeconds(2f);
+        startButton.SetActive(true);
+        buttons.interactable = false;
+    }
+
+    private IEnumerator StartNextRound()
+    {
+        playerSequenceList.Clear();
+        buttons.interactable = false;
+        yield return new WaitForSeconds(1f);
+        playerTaskList.Add(Random.Range(0, 4));
+
+        foreach (int index in playerTaskList)
+        {
+            yield return StartCoroutine(HighlightButton(index));
+        }
+        buttons.interactable = true;
+    }
+
+    private void ResetButtonImages()
+    {
+        foreach (var button in clickableButtons)
+        {
+            button.image.sprite = normalSprite;
+        }
+    }
+
+    private void LoadHighScore()
+    {
+        highScore = PlayerPrefs.GetInt("HighScore", 0);
+    }
+
+    private void SaveHighScore()
+    {
+        PlayerPrefs.SetInt("HighScore", highScore);
     }
 
     public void StartGame()
     {
-        activeSequence.Clear();
-        positionInSequence = 0;
-
-        inputInSequence = 0;
-
-        colorSelect = Random.Range(0, btnColors.Length);
-
-        activeSequence.Add(colorSelect);
-
-        btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
-        btnSounds[activeSequence[positionInSequence]].Play();
-
-        stayLitCounter = stayLit;
-        shouldBeLit = true;
-
-        scoreText.text = "Score: 0 / High Score: " + PlayerPrefs.GetInt("HighScore");
-
-    }
-
-    public void ColorPressed(int whichButton)
-    {
-        if (gameActive)
-        {
-
-            if (activeSequence[inputInSequence] == whichButton)
-            {
-
-                inputInSequence++;
-
-                if (inputInSequence >= activeSequence.Count)
-                {
-                    StartCoroutine(WaitBetweenSequences());
-                }
-
-            }
-            else
-            {
-                //Debug.Log("WRONG!");
-                incorrect.Play();
-
-                gameActive = false;
-            }
-        }
-    }
-
-    IEnumerator WaitBetweenSequences()
-    {
-        yield return new WaitForSeconds(0.5f);
-
-        if(activeSequence.Count > PlayerPrefs.GetInt("HighScore"))
-        {
-            PlayerPrefs.SetInt("HighScore", activeSequence.Count);
-        }
-        scoreText.text = "Score: " + activeSequence.Count + " / High Score: " + PlayerPrefs.GetInt("HighScore");
-
-        positionInSequence = 0;
-        inputInSequence = 0;
-
-        colorSelect = Random.Range(0, btnColors.Length);
-
-        activeSequence.Add(colorSelect);
-
-        btnColors[activeSequence[positionInSequence]].color = new Color(btnColors[activeSequence[positionInSequence]].color.r, btnColors[activeSequence[positionInSequence]].color.g, btnColors[activeSequence[positionInSequence]].color.b, 1f);
-        btnSounds[activeSequence[positionInSequence]].Play();
-
-        stayLitCounter = stayLit;
-        shouldBeLit = true;
-
-        gameActive = false;
-
-        //Debug.Log("GOOD!");
-        //correct.Play();
-
+        score = 0;
+        UpdateScoreText();
+        StartCoroutine(StartNextRound());
+        startButton.SetActive(false);
     }
 }
-
