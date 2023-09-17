@@ -6,40 +6,31 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    [SerializeField] private List<AudioClip> buttonSoundsList;
+    [SerializeField] private Sprite normalSprite;
+    [SerializeField] private Sprite highlightSprite;
+    [SerializeField] private List<Button> clickableButtons;
+    [SerializeField] private AudioClip loseSound;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private CanvasGroup buttons;
+    [SerializeField] private Button startButton;
+    [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI highScoreText;
+
     private List<int> playerTaskList = new List<int>();
     private List<int> playerSequenceList = new List<int>();
-
-    public List<AudioClip> buttonSoundsList = new List<AudioClip>();
-
-    public Sprite normalSprite;
-    public Sprite highlightSprite;
-    public List<Button> clickableButtons;
-
-    public AudioClip loseSound;
-    public AudioSource audioSource;
-    public CanvasGroup buttons;
-    public GameObject startButton;
-
-    public TextMeshProUGUI scoreText;
-    public TextMeshProUGUI highScoreText;
 
     private float highlightDuration = 0.1f;
     private int score = 0;
     private int highScore = 0;
 
-    private KeyCode upKey = KeyCode.UpArrow;
-    private KeyCode leftKey = KeyCode.LeftArrow;
-    private KeyCode downKey = KeyCode.DownArrow;
-    private KeyCode rightKey = KeyCode.RightArrow;
+    private KeyCode[] arrowKeys = { KeyCode.UpArrow, KeyCode.LeftArrow, KeyCode.DownArrow, KeyCode.RightArrow };
 
     private void Awake()
     {
         ResetButtonImages();
-
         LoadHighScore();
-
-        UpdateScoreText();
-        UpdateHighScoreText();
+        UpdateUI();
     }
 
     private void Update()
@@ -49,10 +40,13 @@ public class GameManager : MonoBehaviour
 
     private void DetectKeyInput()
     {
-        if (Input.GetKeyDown(upKey)) AddToPlayerSequenceList(0);
-        else if (Input.GetKeyDown(leftKey)) AddToPlayerSequenceList(1);
-        else if (Input.GetKeyDown(downKey)) AddToPlayerSequenceList(2);
-        else if (Input.GetKeyDown(rightKey)) AddToPlayerSequenceList(3);
+        for (int i = 0; i < arrowKeys.Length; i++)
+        {
+            if (Input.GetKeyDown(arrowKeys[i]))
+            {
+                AddToPlayerSequenceList(i);
+            }
+        }
     }
 
     private void AddToPlayerSequenceList(int buttonID)
@@ -80,7 +74,7 @@ public class GameManager : MonoBehaviour
     private void ScoreRound()
     {
         score++;
-        UpdateScoreText();
+        UpdateUI();
 
         if (score > highScore)
         {
@@ -88,16 +82,12 @@ public class GameManager : MonoBehaviour
             SaveHighScore();
         }
 
-        UpdateHighScoreText();
+        UpdateUI();
     }
 
-    private void UpdateScoreText()
+    private void UpdateUI()
     {
         scoreText.text = "Score: " + score;
-    }
-
-    private void UpdateHighScoreText()
-    {
         highScoreText.text = "High Score: " + highScore;
     }
 
@@ -116,7 +106,7 @@ public class GameManager : MonoBehaviour
         playerSequenceList.Clear();
         playerTaskList.Clear();
         yield return new WaitForSeconds(2f);
-        startButton.SetActive(true);
+        startButton.gameObject.SetActive(true);
         buttons.interactable = false;
     }
 
@@ -125,12 +115,16 @@ public class GameManager : MonoBehaviour
         playerSequenceList.Clear();
         buttons.interactable = false;
         yield return new WaitForSeconds(1f);
-        playerTaskList.Add(Random.Range(0, 4));
 
-        foreach (int index in playerTaskList)
+        int newPattern = Random.Range(0, 4);
+        playerTaskList.Add(newPattern);
+
+        for (int i = 0; i < playerTaskList.Count; i++)
         {
+            int index = playerTaskList[i];
             yield return StartCoroutine(HighlightButton(index));
         }
+
         buttons.interactable = true;
     }
 
@@ -155,8 +149,8 @@ public class GameManager : MonoBehaviour
     public void StartGame()
     {
         score = 0;
-        UpdateScoreText();
+        UpdateUI();
         StartCoroutine(StartNextRound());
-        startButton.SetActive(false);
+        startButton.gameObject.SetActive(false);
     }
 }
